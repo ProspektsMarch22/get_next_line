@@ -6,13 +6,21 @@
 /*   By: icezar-s <icezar-s@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 23:59:47 by icezar-s          #+#    #+#             */
-/*   Updated: 2025/12/27 18:55:57 by icezar-s         ###   ########.fr       */
+/*   Updated: 2025/12/27 23:18:00 by icezar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line_bonus.h"
 
-static char	*read_line(int fd, char buf[20][BUFFER_SIZE + 1])
+#ifndef FD_MAX
+# if BUFFER_SIZE > 1000
+#  define FD_MAX 16
+# else
+#  define FD_MAX 1024
+# endif
+#endif
+
+static char	*read_line(int fd, char buf[FD_MAX][BUFFER_SIZE + 1])
 {
 	char	*line;
 	char	*newline;
@@ -42,9 +50,9 @@ static char	*read_line(int fd, char buf[20][BUFFER_SIZE + 1])
 
 char	*get_next_line(int fd)
 {
-	static char	buf[20][BUFFER_SIZE + 1];
+	static char	buf[FD_MAX][BUFFER_SIZE + 1];
 
-	if (fd < 0 || fd >= 20 || BUFFER_SIZE <= 0)
+	if (fd < 0 || fd >= FD_MAX || BUFFER_SIZE <= 0)
 		return (NULL);
 	return (read_line(fd, buf));
 }
