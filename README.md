@@ -108,7 +108,7 @@ That's exactly what we can tell the computer to do.
 
 As we can see, `BUFFER_SIZE` also determines the size of the memory allocated to temporarily store the characters read, so we can analyze the string formed by them in search of the end of line. So, for a larger `BUFFER_SIZE`, we'll have to have a larger free memory space.
 
-###### "ft\_memchr"
+##### "ft\_memchr"
 
 Let's emulate a first run of the function.
 
@@ -197,3 +197,98 @@ if (n == -1)
 ```
 
 This lets us deal exactly with the edge cases - when we either finish reading the file, a condition we saw as definitive of a line, or we couldn't read the file at all, at which case the function terminates returning `NULL`.
+
+### arrange\_buffer and str\_shift
+
+So, lets continue our hypothetical simulation:
+
+1. We first fed the `buf` variable with text information by going into `get_next_line`'s `if` statement, nested in the `while` condition;
+2. We then go back to check if there's anything in the `newline` variable. Since our first run of the `ft_memchr` function gave us `NULL`, we still have `newline = NULL`, therefore, we go into the `while`'s body again.
+3. Now, we will run `ft_memchr` again, this time with a working `buf` variable. Let's assume now we have a piece of text that has a proper line in it.
+4. So we go straight to the `else` statement this time, and we then assign to the `line` variable the return value of the `arrange_buffer` function.
+5. Since we got a valid return value from `ft_memchr`, after the assignment of value to `line`, we will exit the `while` statement and return the `line` variable by the end of the code.
+
+But how we got a valid line for it to return?
+
+Let's look at both the `arrange_buffer` and `str_shift` functions.
+
+```
+char	*str_shift(char *old_buf, char *new_buf)
+{
+	char	*shifted;
+	size_t	old_buf_len;
+	size_t	new_buf_len;
+
+	old_buf_len = 0;
+	new_buf_len = 0;
+	while (old_buf && old_buf[old_buf_len])
+		old_buf_len++;
+	while (new_buf && new_buf[new_buf_len] && new_buf[new_buf_len] != '\n')
+		new_buf_len++;
+	if (new_buf && new_buf[new_buf_len] == '\n')
+		new_buf_len++;
+	shifted = malloc(sizeof(char) * (old_buf_len + new_buf_len + 1));
+	if (!shifted)
+		return (free(old_buf), NULL);
+	shifted[0] = '\0';
+	if (old_buf)
+	{
+		ft_strlcat(shifted, old_buf, old_buf_len + 1);
+		free(old_buf);
+	}
+	ft_strlcat(shifted, new_buf, old_buf_len + new_buf_len + 1);
+	return (shifted);
+}
+```
+
+```
+char	*arrange_buffer(char *buf, char *line)
+{
+	size_t	i;
+	size_t	buf_len;
+
+	buf_len = 0;
+	i = 0;
+	while (buf[buf_len] && buf[buf_len] != '\n')
+		buf_len++;
+	if (buf[buf_len] == '\n')
+		buf_len++;
+	while (buf[buf_len])
+		buf[i++] = buf[buf_len++];
+	while (i < BUFFER_SIZE)
+		buf[i++] = '\0';
+	return (line);
+}
+```
+
+Following up our scenario, we have in `buf` a piece of text that contains a valid line. And what I want you to imagine is that this valid line is burrowed within all the text we have in `buf`. So we need to extract only the characters that constitute the valid line, while safely maintaining the rest of useful information currently in the `buf` that may constitute the start of another line.
+
+Imagine now that we have a really long line, a line that has more than `BUFFER_SIZE` characters. We need to deal with a scenario where we have to `read` from the file multiple times until we have found the end-of-line character `'\n'` or the EOF itself; in other words, we need a way to keep storing more and more information until it forms a valid line.
+
+The functions above tackle both of these scenarios.
+
+In order of execution:
+* `str_shift` effectively create a string (`shifted`) that consists of the valid line information. In the scenario where we have the valid line burrowed within the `buf`, we will concatenate the relevant piece of information to a new `shifted` variable, dynamically created with `malloc`. In the scenario where we need to read more bytes, all the characters in `buf` will then be concatenated to a new `shifted` variable each iteration, until we reach the end of line, while `free`ing the old one;
+* `str_shift` will return the `shifted` variable;
+* The `shifted` variable is then fed to the `arrange_buffer` function;
+* The `arrange_buffer` has now a `buf` value with information that was already safely stored at the `shifted` variable. In the scenario where we had the line burrowed within the `buf` variable, we will then begin to replace the information in the `buf`, dislocating the bytes after the valid line to the beginning of the `buf`. The remaining space will be filled with the null-terminated character. In the scenario where we need to continue reading, we will just traverse the `buf`.
+
+At the end, we return the value of the function `str_shift`, even while running the `arrange_buffer` function. This was necessary as a means to comply with the norm rules of 42 and save some lines of code.
+
+So we did find a valid line, saved it to safe `shifted` variable that was succesfully returned and use this value to assign a new value to the `line` variable.
+
+Since when running `ft_memchr` we returned a non-NULL value, we exit the `while` block in the `get_next_line` function, returning the value assigned to the `line` function.
+
+If we need to read more chunks of data, `ft_memchr` would return `NULL`, so we would concatenate more information to the `shifted` variable, while cleaning the `buf` variable to receive more data, each time we iterate through the `while` loop of the `get_next_line` function.
+
+The `str_shift` function depends on the `ft_strlcat` function, which is a safe string concatenation function mirrorring the C Standard String Library implementation of `strlcat`. A deep-dive of its inner-workings would be an overkill for the purposes of explaining this project, so we leave at that - the `str_shift` function _safely_ concatenates strings using `ft_strlcat`. If you want to, you can check up on my `ft_strlcat` implementation in both this project and at the libft project, which has its own repo as well.
+
+### Safely storing remaining information
+
+After safely reading the first line of the text file, imagine that in our `buf` we have the start of a new line. So, in our demo file, we call the function again, after it terminated and returned a valid line. How we can be sure that the start of the next line is safely stored?
+
+That is why we have the `static` keyword associated with the definition of the `buf` variable. That means that the information in memory associated with that particular variable will be kept for the context of the function it belongs to, as long as the program is running.
+
+But when we `read`, the `buf` will be updated. What then?
+
+That's why the `if` statement nested in `get_next_line`'s `while` checks for the `buf` contents. If we have something inside `buf` that is not trash, we will call the `arrange_buffer` + `str_shift` combo on it, safely securing the information before `refresh_buffer` is called again.
