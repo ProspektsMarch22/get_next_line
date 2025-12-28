@@ -104,6 +104,96 @@ Actually, that would be difficult as a human as well - we usually search for the
 
 That's exactly what we can tell the computer to do.
 
-`BUFFER_SIZE` refers to the width of the chunk we are jumping. The larger it is, the more information we can work with by chunk. The unit with which it works with is bytes. Since an unsigned character type is represented by exactly 8 bits of information - a byte - the number associated with the `BUFFER_SIZE` is directly associated with the number of characters the program reads at a time.
+`BUFFER_SIZE` refers to the width of the chunk we are jumping. The larger it is, the more information we can work with by chunk. The unit with which it works with is bytes. Since an unsigned character type is represented by exactly 8 bits of information - a byte - the number `BUFFER_SIZE` takes is directly associated with the number of characters the program reads at a time.
 
 As we can see, `BUFFER_SIZE` also determines the size of the memory allocated to temporarily store the characters read, so we can analyze the string formed by them in search of the end of line. So, for a larger `BUFFER_SIZE`, we'll have to have a larger free memory space.
+
+###### "ft\_memchr"
+
+Let's emulate a first run of the function.
+
+The `line` and `newline` variables are `NULL`. Therefore, when the condition `while(!newline)` is checked and evaluated to `true`, we then assign the variable `newline` the value of `ft_memchr` return, converted to the string type - a `char` pointer.
+
+What are we doing here? We are taking the information present in the `buf` variable - the `BUFFER_SIZE` number of characters that were read - and searching within it for a end-of-line character, the `\n`.
+
+The implementation of `ft_memchr` mirrors that of the C's standard library `strchr`.
+
+```
+void	*ft_memchr(const void *s, int c, size_t n)
+{
+	size_t		i;
+	unsigned char	chr;
+	unsigned char	*ptr;
+
+	if (n == 0)
+		return (NULL);
+	chr = (unsigned char)c;
+	ptr = (unsigned char *)s;
+	i = 0;
+	while (i < n)
+	{
+		if (ptr[i] == chr)
+			return ((void *)&ptr[i]);
+		i++;
+	}
+	return (NULL);
+}
+```
+
+In this function, we take a memory area represented by a `void` pointer, and given its limits - the `size_t n` argument - we search for a specific character whithin it.
+
+If we find said character, the function returns an address to it. If this address is in the middle of a string, we get the a substring that starts with the character.
+
+If we do not find the character, or the size argument is invalid, the function returns `NULL`.
+
+Backing up to our first emulated run of the `get_next_line` function, we can safely say that when called for the first time, `ft_memchr` will return NULL, since we didn't fed the `buf` variable yet.
+
+### refresh\_buffer
+
+So, we need to fill in the buffer, represented by the `buf` variable, with a chunk of text to be analyzed. We will accomplish that with the `refresh_buffer` function
+
+```
+int	refresh_buffer(char *buf, int fd)
+{
+	int	n;
+	int	i;
+
+	n = read(fd, buf, BUFFER_SIZE);
+	i = n;
+	if (n == -1)
+		return (n);
+	while (i < BUFFER_SIZE)
+	{
+		buf[i] = '\0';
+		i++;
+	}
+	return (n);
+}
+```
+
+The `refresh_buffer` function takes the `buf` variable, alongside with the file descriptor `fd` that was fed to the `get_next_line` function, and reads `BUFFER_SIZE` bytes of the file. 
+
+The file descriptor is a unique integer value that represents a file in the UNIX system. For a deep dive in what this actually means, see the resources section of this README, in which there is a link to an article made by me that explains UNIX take on file representation.
+
+What we need to know now is that the `read` function, a C UNIX Standard Library function, will do is read from the given file descriptor `BUFFER_SIZE` bytes and store them inside a given string variable - that will be our `buf`.
+
+It them returns the amount of bytes succesfully read that way. If it returns `-1`, then it means that we cannot read the file at all. If it returns `0`, than it means we reached the EOF.
+
+The `while` statement in this function garantees us that, if we managed to read less bytes than `BUFFER_SIZE`, the `buf` variable will fill its remaining space with a null-terminator character, the `'\0'`.
+
+In a succesful read attempt, our `buf` variable has now a chunk of text, and `refresh_buffer` has returned the number of succesfully read bytes of information.
+
+Going back to the `get_next_line` function, we have the following conditional statements:
+
+```
+n = refresh_buffer(buf, fd);
+if (n == 0)
+	return (line);
+if (n == -1)
+{
+	free(line);
+	return (NULL);
+}
+```
+
+This lets us deal exactly with the edge cases - when we either finish reading the file, a condition we saw as definitive of a line, or we couldn't read the file at all, at which case the function terminates returning `NULL`.
