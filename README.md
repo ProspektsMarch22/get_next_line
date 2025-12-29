@@ -374,4 +374,23 @@ Since I don't know exactly the limit to which is possible to allocate memory saf
 
 This limit is discussed in the article I've wrote, so go check it out!
 
+## Resources
 
+* My article on [The Unix System Interface](https://www.notion.so/The-UNIX-System-Interface-2c3eda9fb48a805eaf87c016cae8854d?source=copy_link)
+* The C Programming Language - _Brian Kernighan, Dennis Ritchie_
+
+##### AI Usage and QA Testing Suites
+
+For this project, the _francinette_ testing suite was used for testing the program against all sorts of edge cases, particularly those that require specific attention to memory leak. The _francinette_ suite aggregates several test programs wrote by other 42 students, and can be consulted through [here](https://github.com/xicodomingues/francinette)
+
+AI was used to tackle some particular issues involving such edge cases, specially in the case of the _Bonus Part_, in which the particular idea of addressing the `FD_MAX` as a conditional macro was suggested.
+
+In general, the AI models were a help in honing the code's implementation and as a debug tool.
+
+##### Aknowledgements
+
+The logic behind the code was layed upon me while writing the article, as I were written the examples from K&R book. Besides that, repos from 42 colleagues were consulted as well. 
+
+Project repositories from other 42 students and colleagues at 42Porto were consulted as well, as a means of comparison and peer review.
+
+A huge thanks to Luis Paiva (lpaiva) and Luis da Cunha (luidacu), which were vital in supporting my efforts to complete this project.
