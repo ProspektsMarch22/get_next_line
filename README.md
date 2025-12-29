@@ -96,7 +96,9 @@ newline = (char *)ft_memchr(buf, '\n', BUFFER_SIZE);
 
 The first thing that needs to be understood is how we can define and read a line.
 
-A line is everything that ends with a "\n", a character that represents a line break in the ASCII table.Other than that, a line is everything that is between a last "\n" and the proper end of the file (EOF).
+A line is everything that ends with a "\n", a character that represents a line break in the ASCII table. Other than that, a line is everything that is between a last "\n" and the proper end of the file.
+
+From here on after, we will be refering to "End of File" as the acronym _EOF_.
 
 But the computer can't actually discern this definition natively. He knows what the EOF is and we can show it where a "\n" can be found, but it doesn't know precisely how many bytes of information it must access until it finds the end of a line. 
 
@@ -110,9 +112,11 @@ As we can see, `BUFFER_SIZE` also determines the size of the memory allocated to
 
 ##### "ft\_memchr"
 
-Let's emulate a first run of the function.
+Let's simulate a first run of the function.
 
-The `line` and `newline` variables are `NULL`. Therefore, when the condition `while(!newline)` is checked and evaluated to `true`, we then assign the variable `newline` the value of `ft_memchr` return, converted to the string type - a `char` pointer.
+The `line` and `newline` variables are assigned the value `NULL`. 
+
+Therefore, when the condition `while(!newline)` is checked and evaluated to `true`, we then assign the variable `newline` the value of `ft_memchr` return, converted to the string type - a `char` pointer.
 
 What are we doing here? We are taking the information present in the `buf` variable - the `BUFFER_SIZE` number of characters that were read - and searching within it for a end-of-line character, the `\n`.
 
@@ -140,9 +144,9 @@ void	*ft_memchr(const void *s, int c, size_t n)
 }
 ```
 
-In this function, we take a memory area represented by a `void` pointer, and given its limits - the `size_t n` argument - we search for a specific character whithin it.
+In this function, we take a memory area represented by a `void` pointer, and given its limits - the `size_t n` argument - we search for a specific character within it.
 
-If we find said character, the function returns an address to it. If this address is in the middle of a string, we get the a substring that starts with the character.
+If we find said character, the function returns an address to it. If this address is in the middle of a string, we get a substring that starts with the character.
 
 If we do not find the character, or the size argument is invalid, the function returns `NULL`.
 
@@ -150,7 +154,9 @@ Backing up to our first emulated run of the `get_next_line` function, we can saf
 
 ### refresh\_buffer
 
-So, we need to fill in the buffer, represented by the `buf` variable, with a chunk of text to be analyzed. We will accomplish that with the `refresh_buffer` function
+So, we need to fill in the `buf` variable with a chunk of text to be analyzed. 
+
+We will firstly accomplish that with the `refresh_buffer` function:
 
 ```
 int	refresh_buffer(char *buf, int fd)
@@ -173,13 +179,18 @@ int	refresh_buffer(char *buf, int fd)
 
 The `refresh_buffer` function takes the `buf` variable, alongside with the file descriptor `fd` that was fed to the `get_next_line` function, and reads `BUFFER_SIZE` bytes of the file. 
 
-The file descriptor is a unique integer value that represents a file in the UNIX system. For a deep dive in what this actually means, see the resources section of this README, in which there is a link to an article made by me that explains UNIX take on file representation.
+> The file descriptor is a unique integer value that represents a file in the UNIX system. For a deep dive in what this actually means, see the resources section of this README, in which there is a link to an article made by me that explains UNIX take on file representation.
+>
 
-What we need to know now is that the `read` function, a C UNIX Standard Library function, will do is read from the given file descriptor `BUFFER_SIZE` bytes and store them inside a given string variable - that will be our `buf`.
+What we need to know now is that the `read` function, a C UNIX Standard Library function, read from the given file descriptor `BUFFER_SIZE` bytes and store them inside a given string variable - that will be our `buf`.
 
-It them returns the amount of bytes succesfully read that way. If it returns `-1`, then it means that we cannot read the file at all. If it returns `0`, than it means we reached the EOF.
+It them returns the amount of bytes succesfully read that way. 
+
+If it returns `-1`, then it means that we cannot read the file at all. If it returns `0`, than it means we reached the EOF.
 
 The `while` statement in this function garantees us that, if we managed to read less bytes than `BUFFER_SIZE`, the `buf` variable will fill its remaining space with a null-terminator character, the `'\0'`.
+
+This is important because the way the C programming language works with strings. A string is a sequence of characters that always end up in `'\0'`. 
 
 In a succesful read attempt, our `buf` variable has now a chunk of text, and `refresh_buffer` has returned the number of succesfully read bytes of information.
 
@@ -198,11 +209,13 @@ if (n == -1)
 
 This lets us deal exactly with the edge cases - when we either finish reading the file, a condition we saw as definitive of a line, or we couldn't read the file at all, at which case the function terminates returning `NULL`.
 
+The contents stored in the `line` variable will be explored in the following section.
+
 ### arrange\_buffer and str\_shift
 
-So, lets continue our hypothetical simulation:
+So, lets continue our simulation exercise:
 
-1. We first fed the `buf` variable with text information by going into `get_next_line`'s `if` statement, nested in the `while` condition;
+1. We first fed the `buf` variable with text information by going into `get_next_line`'s `if` statement, nested in the `while` condition, by calling the `refresh_buffer` function;
 2. We then go back to check if there's anything in the `newline` variable. Since our first run of the `ft_memchr` function gave us `NULL`, we still have `newline = NULL`, therefore, we go into the `while`'s body again.
 3. Now, we will run `ft_memchr` again, this time with a working `buf` variable. Let's assume now we have a piece of text that has a proper line in it.
 4. So we go straight to the `else` statement this time, and we then assign to the `line` variable the return value of the `arrange_buffer` function.
@@ -261,21 +274,29 @@ char	*arrange_buffer(char *buf, char *line)
 }
 ```
 
-Following up our scenario, we have in `buf` a piece of text that contains a valid line. And what I want you to imagine is that this valid line is burrowed within all the text we have in `buf`. So we need to extract only the characters that constitute the valid line, while safely maintaining the rest of useful information currently in the `buf` that may constitute the start of another line.
+Following up our scenario, we have in `buf` a piece of text that contains a valid line. And what I want you to imagine is that this valid line is burrowed within all the text we currently have in `buf`. 
+
+So we need to extract only the characters that constitute the valid line, while safely maintaining the rest of useful information currently in the `buf` that may constitute the start of another line.
 
 Imagine now that we have a really long line, a line that has more than `BUFFER_SIZE` characters. We need to deal with a scenario where we have to `read` from the file multiple times until we have found the end-of-line character `'\n'` or the EOF itself; in other words, we need a way to keep storing more and more information until it forms a valid line.
 
 The functions above tackle both of these scenarios.
 
 In order of execution:
-* `str_shift` effectively create a string (`shifted`) that consists of the valid line information. In the scenario where we have the valid line burrowed within the `buf`, we will concatenate the relevant piece of information to a new `shifted` variable, dynamically created with `malloc`. In the scenario where we need to read more bytes, all the characters in `buf` will then be concatenated to a new `shifted` variable each iteration, until we reach the end of line, while `free`ing the old one;
+* `str_shift` effectively create a string (`shifted`) that consists of the valid line information. In the scenario where we have the valid line burrowed within the `buf`, we will copy the relevant piece of information to a new `shifted` variable, dynamically created with `malloc`. 
+* In the scenario where we need to read more bytes, all the characters in `buf` will then be copied to a new `shifted` variable each iteration, that will receive first the information stored in the older `shifted` variable, effectively concatenating the old and the new information. The old variable is then freed;
 * `str_shift` will return the `shifted` variable;
 * The `shifted` variable is then fed to the `arrange_buffer` function;
-* The `arrange_buffer` has now a `buf` value with information that was already safely stored at the `shifted` variable. In the scenario where we had the line burrowed within the `buf` variable, we will then begin to replace the information in the `buf`, dislocating the bytes after the valid line to the beginning of the `buf`. The remaining space will be filled with the null-terminated character. In the scenario where we need to continue reading, we will just traverse the `buf`.
+* The `arrange_buffer` has now a `buf` value with information that was already safely stored at the `shifted` variable. 
+* In the scenario where we had the line burrowed within the `buf` variable, we will then begin to replace the information in the `buf`, dislocating the bytes after the valid line to the beginning of the `buf`;
+* The remaining space will be filled with the null-terminating character; 
+* In the scenario where we need to continue reading, we will just _traverse_ the `buf`.
 
-At the end, we return the value of the function `str_shift`, even while running the `arrange_buffer` function. This was necessary as a means to comply with the norm rules of 42 and save some lines of code.
+At the end, we return the value of the function `str_shift`, even while running the `arrange_buffer` function. 
 
-So we did find a valid line, saved it to safe `shifted` variable that was succesfully returned and use this value to assign a new value to the `line` variable.
+This was necessary as a means to comply with the norm rules of 42 and save some lines of code.
+
+So we did find a valid line, saved it to a safe `shifted` variable that was succesfully returned and use this value to assign a new value to the `line` variable.
 
 Since when running `ft_memchr` we returned a non-NULL value, we exit the `while` block in the `get_next_line` function, returning the value assigned to the `line` function.
 
@@ -389,7 +410,7 @@ In general, the AI models were a help in honing the code's implementation and as
 
 ##### Aknowledgements
 
-The logic behind the code was layed upon me while writing the article, as I were written the examples from K&R book. Besides that, repos from 42 colleagues were consulted as well. 
+The logic behind the code was layed upon me while writing the article, as I were reviewing the examples from K&R's book. 
 
 Project repositories from other 42 students and colleagues at 42Porto were consulted as well, as a means of comparison and peer review.
 
