@@ -292,3 +292,86 @@ That is why we have the `static` keyword associated with the definition of the `
 But when we `read`, the `buf` will be updated. What then?
 
 That's why the `if` statement nested in `get_next_line`'s `while` checks for the `buf` contents. If we have something inside `buf` that is not trash, we will call the `arrange_buffer` + `str_shift` combo on it, safely securing the information before `refresh_buffer` is called again.
+
+## How it Works - Bonus Part
+
+The goal of the bonus part was to make the program able to deal with multiple file descriptors at once, with variable `BUFFER_SIZE` values.
+
+Since the constraints of the norm establishes that a function body must have 25 lines of code at maximum, we would have to split some of the `get_next_line` functionalities into two functions. The end result is this:
+
+```
+#ifndef FD_MAX
+# if BUFFER_SIZE > 1000
+#  define FD_MAX 16
+# else
+#  define FD_MAX 1024
+# endif 
+#endif
+
+static char	*read_line(int fd, char buf[FD_MAX][BUFFER_SIZE + 1])
+{
+	char	*line;
+	char	*newline;
+	int	n;
+
+	line = NULL;
+	newline = NULL;
+	while (!newline)
+	{
+		newline = (char *)ft_memchr(buf[fd], '\n', BUFFER_SIZE);
+		if (!*buf[fd])
+		{
+			n = refresh_buffer(buf[fd], fd);
+			if (n == 0)
+				return (line);
+			if (n == -1)
+			{
+				free(line);
+				return (NULL);
+			}
+		}
+		else
+			line = arrange_buffer(buf[fd], str_shift(line, buf[fd]));
+	}
+	return (line);
+}
+
+char	*get_next_line(int fd)
+{
+	static char buf[FD_MAX][BUFFER_SIZE + 1];
+	
+	if (fd < 0 || fd >= FD_MAX || BUFFER_SIZE <= 0)
+		return (NULL);
+	return (read_line(fd, buf));
+}
+```
+
+The auxiliary functions are not changed, and the inner logic presented on the sections before remain. The difference this time is that the main logic is now handled by a function called `read_line`, and in `get_next_line` we run a conditional check before calling it. 
+
+This conditional check is imposed so to validate edge cases, in which the multiple FD's may represent access to invalid files or the conditions in which we deal with the multiple files are not valid.
+
+But the real issue comes down due to the project's logic being depandable of a static `buf` definition. 
+
+`buf` is now a two-dimension array, first being the FD, and the last one representing the lines.
+
+In practice, this can create problems that are memory-related. If we were to create an array that can process thousands of files, when we set the `BUFFER_SIZE` to handle millions of bytes by chunk, the memory allocated can be as close to almost all available RAM Memory space available - rendering the program useless since the computer has a failsafe routine to prevent running such memory degrading programs.
+
+We can represent the declaration of our `buf` as an equation:
+
+```
+FD * (BUFFER_SIZE + 1) = Memory Allocated
+```
+
+If we are to deal with a threshold to memory allocation, that imposes a particular relationship between our variables `FD` and `BUFFER_SIZE`. So, the problem can be solved rearranging the equation:
+
+```
+FD = (Memory Allocated) / (BUFFER_SIZE + 1)
+```
+
+What is important to get out from this is that `FD` has now an _inverse proportinality relationship_ with `BUFFER_SIZE` - if we were to grow `BUFFER_SIZE`, we'd have to shrink `FD`.
+
+Since I don't know exactly the limit to which is possible to allocate memory safely, I've made the MACRO `FD_MAX` to follow a conditional logic: _if the program is dealing with at least 1MB per chunk, we will deal only with a value as close as possible to the FD limit within C language constraints._
+
+This limit is discussed in the article I've wrote, so go check it out!
+
+
