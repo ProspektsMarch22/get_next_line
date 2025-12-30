@@ -375,7 +375,7 @@ But the real issue comes down due to the project's logic being depandable of a s
 
 `buf` is now a two-dimension array, first being the FD, and the last one representing the lines.
 
-In practice, this can create problems that are memory-related. If we were to create an array that can process thousands of files, when we set the `BUFFER_SIZE` to handle millions of bytes by chunk, the memory allocated can be as close to almost all available RAM Memory space available - rendering the program useless since the computer has a failsafe routine to prevent running such memory degrading programs.
+In practice, this can create problems that are memory-related. If we were to create an array that can process thousands of files, when we set the `BUFFER_SIZE` to handle millions of bytes by chunk, the memory allocated can be as close to almost all available RAM, rendering the program useless since the computer has a failsafe routine to prevent running such memory demanding programs.
 
 We can represent the declaration of our `buf` as an equation:
 
@@ -383,17 +383,20 @@ We can represent the declaration of our `buf` as an equation:
 FD * (BUFFER_SIZE + 1) = Memory Allocated
 ```
 
-If we are to deal with a threshold to memory allocation, that imposes a particular relationship between our variables `FD` and `BUFFER_SIZE`. So, the problem can be solved rearranging the equation:
+If we are to deal with a threshold to memory allocation, that imposes a particular relationship between our variables `FD` and `BUFFER_SIZE`. To investigate the nature of this relationship, we can, for example, solve the equation for `FD`:
 
 ```
 FD = (Memory Allocated) / (BUFFER_SIZE + 1)
 ```
 
-What is important to get out from this is that `FD` has now an _inverse proportinality relationship_ with `BUFFER_SIZE` - if we were to grow `BUFFER_SIZE`, we'd have to shrink `FD`.
+What is important to get out from this is that `FD` has now an _inverse proportinality relationship_ with `BUFFER_SIZE` - when `BUFFER_SIZE` gets bigger, FD gets smaller, assuming that the Memory Allocated stays the same.
 
-Since I don't know exactly the limit to which is possible to allocate memory safely, I've made the MACRO `FD_MAX` to follow a conditional logic: _if the program is dealing with at least 1MB per chunk, we will deal only with a value as close as possible to the FD limit within C language constraints._
+Since I don't know exactly the limit to which is possible to allocate memory safely, I've made the MACRO `FD_MAX` to follow a conditional logic: 
 
-This limit is discussed in the article I've wrote, so go check it out!
+> if the program is dealing with at least 1MB per chunk, we will deal only with a value as close as possible to the FD limit within C language constraints.
+>
+
+This FD limit is discussed in the article I've wrote, so go check it out!
 
 ## Resources
 
